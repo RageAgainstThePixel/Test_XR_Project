@@ -90,7 +90,7 @@ jobs:
               $version = [System.Management.Automation.SemanticVersion]$setVersion
             }
           } else {
-            $version = [System.Management.Automation.SemanticVersion]::New($lastReleaseSemVer.Major, $lastReleaseSemVer.Minor, $lastReleaseSemVer.Patch, "pr.${{ github.run_number }}")
+            $version = [System.Management.Automation.SemanticVersion]::New($lastReleaseSemVer.Major, $lastReleaseSemVer.Minor, $lastReleaseSemVer.Patch, "preview.${{ github.run_number }}")
           }
 
           $versionString = $version.ToString()
