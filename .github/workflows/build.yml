@@ -78,7 +78,7 @@ jobs:
 
             $setVersion = '${{ inputs.set-version }}'
 
-            if ([string]::IsNullOrWhiteSpace($setVersion)) {
+            if ([string]::IsNullOrWhiteSpace($setVersion) -or [string]::IsNullOrWhiteSpace($lastRelease)) {
               $isMain = '${{ github.ref_name == 'main' }}'
 
               if ($isMain -eq 'true') {
