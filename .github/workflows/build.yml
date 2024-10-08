@@ -38,6 +38,7 @@ jobs:
       SYMBOLS: ' -symbols disabled'
     runs-on: ${{ matrix.os }}
     strategy:
+      fail-fast: false
       matrix:
         os: [windows-latest, macos-15]
         include:
