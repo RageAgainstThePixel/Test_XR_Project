@@ -65,7 +65,7 @@ jobs:
           $lastRelease = $(git describe --tags $(git rev-list --tags --max-count=1))
           Write-Host "Last release from git: $lastRelease"
 
-          if ($lastRelease -match "fatal") {
+          if ([string]::IsNullOrWhiteSpace($lastRelease) -or $lastRelease -match "fatal") {
             $lastRelease = "0.1.0"
           }
 
@@ -78,7 +78,7 @@ jobs:
 
             $setVersion = '${{ inputs.set-version }}'
 
-            if ([string]::IsNullOrWhiteSpace($setVersion) -or [string]::IsNullOrWhiteSpace($lastRelease)) {
+            if ([string]::IsNullOrWhiteSpace($setVersion)) {
               $isMain = '${{ github.ref_name == 'main' }}'
 
               if ($isMain -eq 'true') {
