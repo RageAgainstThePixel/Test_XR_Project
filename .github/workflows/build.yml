@@ -35,7 +35,6 @@ jobs:
       RELEASE_CHANNEL: ''
       UNITY_EDITOR_PATH: ''
       UNITY_PROJECT_PATH: ''
-      SYMBOLS: ' -symbols disabled'
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
@@ -47,7 +46,7 @@ jobs:
             build-args: ''
           - os: macos-15
             build-target: VisionOS
-            build-args: ' -enableAppleAutomaticSigning'
+            build-args: '-enableAppleAutomaticSigning'
     steps:
       - uses: actions/checkout@v4
         with:
@@ -66,15 +65,17 @@ jobs:
           Write-Host "Last release from git: $lastRelease"
 
           if ([string]::IsNullOrWhiteSpace($lastRelease) -or $lastRelease -match "fatal") {
-            $lastRelease = "0.1.0"
+            $lastRelease = "0.0.0"
           }
 
           $lastReleaseSemVer = [System.Management.Automation.SemanticVersion]$lastRelease
           $lastReleaseVersionString = $lastReleaseSemVer.ToString()
 
           if ($isRelease -eq 'true') {
-            $split = " -splitApk"
-            "SPLIT_APK=$split" >> $env:GITHUB_ENV
+            if (${{ matrix.build-target }} -eq 'Android') {
+              $split = " -splitApk"
+              "SPLIT_APK=$split" >> $env:GITHUB_ENV
+            }
 
             $setVersion = '${{ inputs.set-version }}'
 
@@ -82,15 +83,15 @@ jobs:
               $isMain = '${{ github.ref_name == 'main' }}'
 
               if ($isMain -eq 'true') {
-                $version = [System.Management.Automation.SemanticVersion]::New($lastReleaseSemVer.Major, $lastReleaseSemVer.Minor + 1, 0)
+                $version = [System.Management.Automation.SemanticVersion]::New($lastReleaseSemVer.Major + 1, 0, 0)
               } else {
-                $version = [System.Management.Automation.SemanticVersion]::New($lastReleaseSemVer.Major, $lastReleaseSemVer.Minor, $lastReleaseSemVer.Patch + 1)
+                $version = [System.Management.Automation.SemanticVersion]::New($lastReleaseSemVer.Major, $lastReleaseSemVer.Minor + 1, 0)
               }
             } else {
               $version = [System.Management.Automation.SemanticVersion]$setVersion
             }
           } else {
-            $version = [System.Management.Automation.SemanticVersion]::New($lastReleaseSemVer.Major, $lastReleaseSemVer.Minor, $lastReleaseSemVer.Patch, "preview.${{ github.run_number }}")
+            $version = [System.Management.Automation.SemanticVersion]::New($lastReleaseSemVer.Major, $lastReleaseSemVer.Minor, $lastReleaseSemVer.Patch + 1, "preview.${{ github.run_number }}")
           }
 
           $versionString = $version.ToString()
@@ -115,7 +116,7 @@ jobs:
       - name: Update Build Args
         run: |
           $buildArgs = '${{ matrix.build-args }}'
-          $buildArgs += " ${{ env.SPLIT_APK }}${{ env.SYMBOLS }} -versionName ${{ env.VERSION }} -versionCode ${{ github.run_number }}"
+          $buildArgs += " -versionName ${{ env.VERSION }} -versionCode ${{ github.run_number }}"
 
           Write-Host "Build Args: $buildArgs"
           "BUILD_ARGS=$buildArgs" >> $env:GITHUB_ENV

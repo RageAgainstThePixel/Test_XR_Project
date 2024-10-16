@@ -17,7 +17,7 @@ PlayerSettings:
   defaultCursor: {fileID: 0}
   cursorHotspot: {x: 0, y: 0}
   m_SplashScreenBackgroundColor: {r: 0.13725491, g: 0.12156863, b: 0.1254902, a: 1}
-  m_ShowUnitySplashScreen: 1
+  m_ShowUnitySplashScreen: 0
   m_ShowUnitySplashLogo: 1
   m_SplashScreenOverlayOpacity: 1
   m_SplashScreenAnimation: 1
@@ -267,8 +267,8 @@ PlayerSettings:
   AndroidTargetArchitectures: 2
   AndroidSplashScreenScale: 0
   androidSplashScreen: {fileID: 0}
-  AndroidKeystoreName: 
-  AndroidKeyaliasName: 
+  AndroidKeystoreName: '{inproject}: user.keystore'
+  AndroidKeyaliasName: com.rage.against.the.pixel.xr.test
   AndroidEnableArmv9SecurityFeatures: 0
   AndroidEnableArm64MTE: 0
   AndroidBuildApkPerCpuArchitecture: 0
@@ -289,7 +289,14 @@ PlayerSettings:
   AndroidAppBundleSizeToValidate: 150
   AndroidReportGooglePlayAppDependencies: 1
   androidSymbolsSizeThreshold: 800
-  m_BuildTargetIcons: []
+  m_BuildTargetIcons:
+  - m_BuildTarget: 
+    m_Icons:
+    - serializedVersion: 2
+      m_Icon: {fileID: 2800000, guid: cac3c12def03f88488b744af6e0cfaa0, type: 3}
+      m_Width: 128
+      m_Height: 128
+      m_Kind: 0
   m_BuildTargetPlatformIcons:
   - m_BuildTarget: Android
     m_Icons:
@@ -519,7 +526,10 @@ PlayerSettings:
       m_SubKind: 
   - m_BuildTarget: VisionOS
     m_Icons:
-    - m_Textures: []
+    - m_Textures:
+      - {fileID: 2800000, guid: cac3c12def03f88488b744af6e0cfaa0, type: 3}
+      - {fileID: 2800000, guid: cac3c12def03f88488b744af6e0cfaa0, type: 3}
+      - {fileID: 2800000, guid: cac3c12def03f88488b744af6e0cfaa0, type: 3}
       m_Width: 1024
       m_Height: 1024
       m_Kind: 0
@@ -993,7 +1003,7 @@ PlayerSettings:
   luminIsChannelApp: 0
   luminVersion:
     m_VersionCode: 1
-    m_VersionName: 
+    m_VersionName: 1.0.0
   hmiPlayerDataPath: 
   hmiForceSRGBBlit: 1
   embeddedLinuxEnableGamepadInput: 1
@@ -1012,7 +1022,7 @@ PlayerSettings:
   cloudEnabled: 0
   legacyClampBlendShapeWeights: 0
   hmiLoadingImage: {fileID: 0}
-  platformRequiresReadableAssets: 0
+  platformRequiresReadableAssets: 1
   virtualTexturingSupportEnabled: 0
   insecureHttpOption: 0
   androidVulkanDenyFilterList: []
