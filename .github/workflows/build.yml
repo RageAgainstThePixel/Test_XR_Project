@@ -156,9 +156,9 @@ jobs:
       - uses: buildalon/upload-meta-quest-build@v1
         if: ${{ matrix.build-target == 'Android' && ( github.ref_name == 'main' || github.ref_name == 'development' ) && github.event_name == 'push' }}
         with:
-          ageGroup: TEENS_AND_ADULTS
           appId: ${{ secrets.META_APP_ID }}
           appSecret: ${{ secrets.META_APP_SECRET }}
+          ageGroup: TEENS_AND_ADULTS
       - uses: actions/upload-artifact@v4
         id: upload-artifact
         name: 'Upload ${{ matrix.build-target }} Artifacts'
