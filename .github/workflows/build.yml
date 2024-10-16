@@ -72,7 +72,7 @@ jobs:
           $lastReleaseVersionString = $lastReleaseSemVer.ToString()
 
           if ($isRelease -eq 'true') {
-            if (${{ matrix.build-target }} -eq 'Android') {
+            if ('${{ matrix.build-target }}' -eq 'Android') {
               $split = " -splitApk"
               "SPLIT_APK=$split" >> $env:GITHUB_ENV
             }
