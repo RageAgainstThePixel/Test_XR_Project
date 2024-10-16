@@ -46,7 +46,7 @@ jobs:
             build-args: ''
           - os: macos-15
             build-target: VisionOS
-            build-args: '-enableAppleAutomaticSigning'
+            build-args: ' -enableAppleAutomaticSigning'
     steps:
       - uses: actions/checkout@v4
         with:
