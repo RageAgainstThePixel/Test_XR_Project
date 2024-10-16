@@ -116,8 +116,6 @@ jobs:
         run: |
           $buildArgs = '${{ matrix.build-args }}'
           $buildArgs += " ${{ env.SPLIT_APK }}${{ env.SYMBOLS }} -versionName ${{ env.VERSION }} -versionCode ${{ github.run_number }}"
-          $githubRefName = '${{ github.ref_name }}'
-          $isRelease = '${{ ( github.ref_name == 'main' || github.ref_name == 'development' ) && github.event_name == 'push' }}'
 
           Write-Host "Build Args: $buildArgs"
           "BUILD_ARGS=$buildArgs" >> $env:GITHUB_ENV
@@ -142,7 +140,7 @@ jobs:
           log-name: '${{ matrix.build-target }}-Build'
           build-target: '${{ matrix.build-target }}'
           args: '-quit -batchmode -executeMethod Buildalon.Editor.BuildPipeline.UnityPlayerBuildTools.StartCommandLineBuild${{ matrix.build-args }}'
-      - uses: buildalon/unity-xcode-builder@v1
+      - uses: RageAgainstThePixel/unity-xcode-builder@development
         id: xcode-build
         if: ${{ matrix.build-target == 'VisionOS' }}
         with:
@@ -151,15 +149,15 @@ jobs:
           app-store-connect-key-id: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
           app-store-connect-issuer-id: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
           team-id: ${{ secrets.APPLE_TEAM_ID }}
-          export-option: ad-hoc
-      # - uses: buildalon/setup-ovr-platform-util@v1
-      #   if: ${{ matrix.build-target == 'Android' && ( github.ref_name == 'main' || github.ref_name == 'development' ) && github.event_name == 'push' }}
-      # - uses: buildalon/upload-meta-quest-build@v1
-      #   if: ${{ matrix.build-target == 'Android' && ( github.ref_name == 'main' || github.ref_name == 'development' ) && github.event_name == 'push' }}
-      #   with:
-      #     ageGroup: TEENS_AND_ADULTS
-      #     appId: ${{ secrets.META_APP_ID }}
-      #     appSecret: ${{ secrets.META_APP_SECRET }}
+          export-option: ${{ env.EXPORT_OPTION }}
+      - uses: buildalon/setup-ovr-platform-util@v1
+        if: ${{ matrix.build-target == 'Android' && ( github.ref_name == 'main' || github.ref_name == 'development' ) && github.event_name == 'push' }}
+      - uses: buildalon/upload-meta-quest-build@v1
+        if: ${{ matrix.build-target == 'Android' && ( github.ref_name == 'main' || github.ref_name == 'development' ) && github.event_name == 'push' }}
+        with:
+          ageGroup: TEENS_AND_ADULTS
+          appId: ${{ secrets.META_APP_ID }}
+          appSecret: ${{ secrets.META_APP_SECRET }}
       - uses: actions/upload-artifact@v4
         id: upload-artifact
         name: 'Upload ${{ matrix.build-target }} Artifacts'
