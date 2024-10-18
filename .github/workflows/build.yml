@@ -141,7 +141,7 @@ jobs:
           log-name: '${{ matrix.build-target }}-Build'
           build-target: '${{ matrix.build-target }}'
           args: '-quit -batchmode -executeMethod Buildalon.Editor.BuildPipeline.UnityPlayerBuildTools.StartCommandLineBuild${{ matrix.build-args }} -versionName 1.0.1'
-      - uses: buildalon/unity-xcode-builder@v1
+      - uses: RageAgainstThePixel/unity-xcode-builder@development
         id: xcode-build
         if: ${{ matrix.build-target == 'VisionOS' }}
         with:
