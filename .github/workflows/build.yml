@@ -162,13 +162,13 @@ jobs:
       - uses: actions/upload-artifact@v4
         id: upload-artifact
         name: 'Upload ${{ matrix.build-target }} Artifacts'
-        if: success() || failure()
+        if: ${{ env.EXPORT_OPTION == 'ad-hoc' }}
         with:
           compression-level: 0
           retention-days: 1
           name: '${{ github.run_number }}.${{ github.run_attempt }}-${{ matrix.os }}-${{ matrix.build-target }}-Artifacts'
           path: |
-            ${{ github.workspace }}/**/*.log
+            # ${{ github.workspace }}/**/*.log
             ${{ steps.xcode-build.outputs.executable }}
             ${{ env.UNITY_PROJECT_PATH }}/Builds/Android/**/*.obb
             ${{ env.UNITY_PROJECT_PATH }}/Builds/Android/**/*.apk
