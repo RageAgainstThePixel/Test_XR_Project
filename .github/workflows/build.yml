@@ -48,7 +48,7 @@ jobs:
             build-target: VisionOS
             build-args: ' -enableAppleAutomaticSigning'
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           clean: ${{ github.event.inputs.clean == 'true' }}
       - name: Update Version
@@ -121,27 +121,27 @@ jobs:
           Write-Host "Build Args: $buildArgs"
           "BUILD_ARGS=$buildArgs" >> $env:GITHUB_ENV
         shell: pwsh
-      - uses: buildalon/unity-setup@v1
+      - uses: buildalon/unity-setup@v3
         with:
           build-targets: '${{ matrix.build-target }}'
-      - uses: buildalon/activate-unity-license@v1
+      - uses: buildalon/activate-unity-license@v3
         with:
           license: 'Professional'
           username: '${{ secrets.UNITY_USERNAME }}'
           password: '${{ secrets.UNITY_PASSWORD }}'
           serial: '${{ secrets.UNITY_SERIAL }}'
-      - uses: buildalon/unity-action@v1
+      - uses: buildalon/unity-action@v4
         name: Project Validation
         with:
           log-name: 'project-validation'
           args: '-quit -batchmode -executeMethod Buildalon.Editor.BuildPipeline.UnityPlayerBuildTools.ValidateProject'
-      - uses: buildalon/unity-action@v1
+      - uses: buildalon/unity-action@v4
         name: '${{ matrix.build-target }}-Build'
         with:
           log-name: '${{ matrix.build-target }}-Build'
           build-target: '${{ matrix.build-target }}'
           args: '-quit -batchmode -executeMethod Buildalon.Editor.BuildPipeline.UnityPlayerBuildTools.StartCommandLineBuild${{ matrix.build-args }} -versionName 1.0.1'
-      - uses: RageAgainstThePixel/unity-xcode-builder@development
+      - uses: RageAgainstThePixel/unity-xcode-builder@v1
         id: xcode-build
         if: ${{ matrix.build-target == 'VisionOS' }}
         with:
@@ -151,15 +151,15 @@ jobs:
           app-store-connect-issuer-id: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
           team-id: ${{ secrets.APPLE_TEAM_ID }}
           export-option: ${{ env.EXPORT_OPTION }}
-      - uses: buildalon/setup-ovr-platform-util@v1
+      - uses: buildalon/setup-ovr-platform-util@v2
         if: ${{ matrix.build-target == 'Android' && ( github.ref_name == 'main' || github.ref_name == 'development' ) && github.event_name == 'push' }}
-      - uses: buildalon/upload-meta-quest-build@v1
+      - uses: buildalon/upload-meta-quest-build@v2
         if: ${{ matrix.build-target == 'Android' && ( github.ref_name == 'main' || github.ref_name == 'development' ) && github.event_name == 'push' }}
         with:
           appId: ${{ secrets.META_APP_ID }}
           appSecret: ${{ secrets.META_APP_SECRET }}
           ageGroup: TEENS_AND_ADULTS
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         id: upload-artifact
         name: 'Upload ${{ matrix.build-target }} Artifacts'
         if: ${{ env.EXPORT_OPTION == 'ad-hoc' }}
