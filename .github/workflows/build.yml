@@ -124,6 +124,7 @@ jobs:
       - uses: buildalon/unity-setup@v3
         with:
           build-targets: '${{ matrix.build-target }}'
+          allow-security-alert: true
       - uses: buildalon/activate-unity-license@v3
         with:
           license: 'Professional'
