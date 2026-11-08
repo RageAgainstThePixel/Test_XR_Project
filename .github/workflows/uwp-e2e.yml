@@ -1,0 +1,158 @@
+name: uwp-e2e
+on:
+  push:
+    branches: ['tmp/uwp-e2e']
+permissions:
+  contents: read
+jobs:
+  uwp:
+    name: ${{ matrix.arch }} ${{ matrix.subtarget }} ${{ matrix.package-type }}
+    runs-on: windows-latest
+    timeout-minutes: 120
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: x64
+            subtarget: PC
+            package-type: sideload
+          - arch: ARM64
+            subtarget: HoloLens
+            package-type: upload
+    env:
+      BUILD_OUTPUT_PATH: ${{ github.workspace }}/Builds/WSAPlayer
+    steps:
+      - uses: actions/checkout@v7
+      - uses: RageAgainstThePixel/unity-setup@v3
+        timeout-minutes: 30
+        with:
+          version-file: ProjectSettings/ProjectVersion.txt
+          build-targets: WSAPlayer
+          allow-security-alert: true
+      - uses: RageAgainstThePixel/activate-unity-license@v3
+        with:
+          license: Personal
+          username: ${{ secrets.UNITY_USERNAME }}
+          password: ${{ secrets.UNITY_PASSWORD }}
+      - uses: RageAgainstThePixel/unity-action@v4
+        name: Validate
+        with:
+          build-target: WSAPlayer
+          project-path: ${{ github.workspace }}
+          log-name: Validate
+          args: -quit -executeMethod Buildalon.Editor.BuildPipeline.UnityPlayerBuildTools.ValidateProject
+      - uses: RageAgainstThePixel/unity-action@v4
+        name: Build
+        timeout-minutes: 60
+        with:
+          build-target: WSAPlayer
+          project-path: ${{ github.workspace }}
+          log-name: Build
+          args: -quit -executeMethod Buildalon.Editor.BuildPipeline.UnityPlayerBuildTools.StartCommandLineBuild -buildOutputDirectory "${{ env.BUILD_OUTPUT_PATH }}" -arch ${{ matrix.arch }} -wsaSubtarget ${{ matrix.subtarget }}
+      - uses: microsoft/setup-msbuild@30375c66a4eea26614e0d39710365f22f8b0af57 # v3
+      # a store association shaped like the one Visual Studio writes for an app with published packages
+      - name: Store association
+        if: ${{ matrix.package-type == 'upload' }}
+        shell: pwsh
+        run: |
+          $xml = @"
+          <?xml version="1.0" encoding="utf-8"?>
+          <StoreAssociation xmlns="http://schemas.microsoft.com/appx/2010/storeassociation">
+            <Publisher>CN=00000000-0000-0000-0000-000000000000</Publisher>
+            <PublisherDisplayName>E2E Test Publisher</PublisherDisplayName>
+            <DeveloperAccountType>WSA</DeveloperAccountType>
+            <GeneratePackageHash>http://www.w3.org/2001/04/xmlenc#sha256</GeneratePackageHash>
+            <SupportedLocales>
+              <Language Code="en-us" InMinimumRequirementSet="true" />
+            </SupportedLocales>
+            <ProductReservedInfo>
+              <MainPackageIdentityName>E2ETestPublisher.TestXRProject</MainPackageIdentityName>
+              <ReservedNames>
+                <ReservedName>Test XR Project E2E</ReservedName>
+              </ReservedNames>
+            </ProductReservedInfo>
+            <AccountPackageFamilyName>E2ETestPublisher.TestXRProject_0000000000000</AccountPackageFamilyName>
+            <PackageInfoList LandingUrl="https://partner.microsoft.com/dashboard/products/0000000000000">
+              <PackageInfo>
+                <PackageArchitecture>neutral</PackageArchitecture>
+                <PackageMaxArchitectureVersion>1.0.0.0</PackageMaxArchitectureVersion>
+              </PackageInfo>
+              <PackageInfo>
+                <PackageArchitecture>x64</PackageArchitecture>
+                <PackageMaxArchitectureVersion>1.0.0.0</PackageMaxArchitectureVersion>
+              </PackageInfo>
+              <PackageInfo>
+                <PackageArchitecture>arm64</PackageArchitecture>
+                <PackageMaxArchitectureVersion>1.0.0.0</PackageMaxArchitectureVersion>
+              </PackageInfo>
+            </PackageInfoList>
+          </StoreAssociation>
+          "@
+          Set-Content -Path (Join-Path $env:RUNNER_TEMP 'Package.StoreAssociation.xml') -Value $xml.Trim() -Encoding utf8
+      - uses: RageAgainstThePixel/unity-uwp-builder@dev/v2.0.0
+        id: uwp
+        with:
+          project-path: ${{ env.BUILD_OUTPUT_PATH }}
+          platform: ${{ matrix.arch }}
+          package-type: ${{ matrix.package-type }}
+          store-association-path: ${{ matrix.package-type == 'upload' && format('{0}/Package.StoreAssociation.xml', runner.temp) || '' }}
+      - name: Inspect outputs
+        shell: pwsh
+        env:
+          EXECUTABLE: ${{ steps.uwp.outputs.executable }}
+          BUNDLES: ${{ steps.uwp.outputs.bundles }}
+          OUTPUT_DIRECTORY: ${{ steps.uwp.outputs.output-directory }}
+        run: |
+          Write-Host "executable: $env:EXECUTABLE"
+          Write-Host "output-directory: $env:OUTPUT_DIRECTORY"
+          $bundles = $env:BUNDLES | ConvertFrom-Json
+          $bundles | ForEach-Object { Write-Host "bundle: $_ ($((Get-Item $_).Length) bytes)" }
+          if (-not (Test-Path $env:EXECUTABLE)) { throw "executable missing" }
+          Add-Type -AssemblyName System.IO.Compression.FileSystem
+          $zip = [IO.Compression.ZipFile]::OpenRead($env:EXECUTABLE)
+          try { $zip.Entries | Select-Object -First 40 | ForEach-Object { Write-Host "  $($_.FullName) $($_.Length)" } } finally { $zip.Dispose() }
+      # the real proof for a sideload package: Windows accepts its signature and installs it
+      - name: Install sideload package
+        if: ${{ matrix.package-type == 'sideload' }}
+        shell: pwsh
+        env:
+          EXECUTABLE: ${{ steps.uwp.outputs.executable }}
+          OUTPUT_DIRECTORY: ${{ steps.uwp.outputs.output-directory }}
+        run: |
+          $signature = Get-AuthenticodeSignature -FilePath $env:EXECUTABLE
+          Write-Host "signature: $($signature.Status) $($signature.SignerCertificate.Subject) $($signature.SignerCertificate.Thumbprint)"
+          $cerPath = Join-Path $env:RUNNER_TEMP 'signer.cer'
+          [IO.File]::WriteAllBytes($cerPath, $signature.SignerCertificate.Export('Cert'))
+          Import-Certificate -FilePath $cerPath -CertStoreLocation 'Cert:\LocalMachine\TrustedPeople' | Out-Null
+          $dependencies = @(Get-ChildItem -Path $env:OUTPUT_DIRECTORY -Recurse -Include *.appx, *.msix | Where-Object { $_.FullName -match '\\Dependencies\\x64\\' } | ForEach-Object FullName)
+          Write-Host "dependencies: $($dependencies -join ', ')"
+          if ($dependencies.Count -gt 0) {
+            Add-AppxPackage -Path $env:EXECUTABLE -DependencyPath $dependencies -ErrorAction Stop
+          } else {
+            Add-AppxPackage -Path $env:EXECUTABLE -ErrorAction Stop
+          }
+          $package = Get-AppxPackage | Where-Object { $_.SignatureKind -eq 'Developer' -and $_.InstallLocation -and $_.Name -notlike 'Microsoft.*' } | Select-Object -Last 1
+          if (-not $package) { throw 'package did not install' }
+          $package | Format-List Name, PackageFullName, Version, Architecture, InstallLocation, Status
+          $manifest = Get-AppxPackageManifest $package
+          $appId = $manifest.Package.Applications.Application.Id
+          Write-Host "app id: $appId"
+          Get-ChildItem $package.InstallLocation | Select-Object -First 30 | ForEach-Object { Write-Host "  $($_.Name)" }
+          # try to start it; a hosted runner may have no interactive desktop, so this is informational
+          try {
+            Start-Process "shell:AppsFolder\$($package.PackageFamilyName)!$appId" -ErrorAction Stop
+            Start-Sleep -Seconds 20
+            $proc = Get-Process | Where-Object { $_.Path -and $_.Path.StartsWith($package.InstallLocation) }
+            if ($proc) { Write-Host "running: $($proc.Name) pid $($proc.Id)"; $proc | Stop-Process -Force } else { Write-Host '::warning::the app did not stay running after launch' }
+          } catch {
+            Write-Host "::warning::could not launch the app: $_"
+          }
+          Remove-AppxPackage -Package $package.PackageFullName
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          retention-days: 3
+          name: uwp-e2e ${{ matrix.arch }} ${{ matrix.subtarget }} ${{ matrix.package-type }}
+          path: |
+            ${{ github.workspace }}/**/*.log
+            ${{ steps.uwp.outputs.output-directory }}
